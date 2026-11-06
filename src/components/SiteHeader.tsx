@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import Logo from "./Logo";
 import { BOARD_GROUPS, BOARDS } from "@/lib/boards";
+import { getCurrentUser } from "@/lib/auth";
+import { logout } from "@/lib/auth-actions";
 
 // 상단 메뉴: 묶음마다 드롭다운. 마우스뿐 아니라 키보드(Tab)로 포커스해도 열린다
 export default function SiteHeader() {
@@ -39,9 +42,39 @@ export default function SiteHeader() {
         </form>
 
         <div className="flex items-center gap-2">
-          <span className="hidden rounded-full border border-line px-3 py-1.5 text-xs text-muted sm:inline">로그인은 준비 중</span>
+          <Suspense fallback={<span className="hidden h-8 w-20 animate-pulse rounded-full bg-surface-2 sm:inline-block" />}>
+            <AuthStatus />
+          </Suspense>
         </div>
       </div>
     </header>
+  );
+}
+
+async function AuthStatus() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return (
+      <div className="hidden items-center gap-2 sm:flex">
+        <Link href="/login" className="rounded-full border border-line px-3 py-1.5 text-xs font-bold text-muted transition-colors hover:text-fg">
+          로그인
+        </Link>
+        <Link href="/signup" className="rounded-full bg-gradient-to-r from-accent to-accent-2 px-3 py-1.5 text-xs font-bold text-white">
+          회원가입
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="hidden items-center gap-3 sm:flex">
+      <span className="text-xs font-bold text-muted">{user.nickname}님</span>
+      <form action={logout}>
+        <button type="submit" className="rounded-full border border-line px-3 py-1.5 text-xs font-bold text-muted transition-colors hover:text-fg">
+          로그아웃
+        </button>
+      </form>
+    </div>
   );
 }

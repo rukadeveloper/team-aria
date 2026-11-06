@@ -28,7 +28,7 @@ export default function BoardWidget({ slug, title, posts, memberOnly }: { slug: 
         <ul className="divide-y divide-line/70">
           {posts.map((p) => (
             <li key={p.id}>
-              <Link href={`/b/${p.board || slug}`} className="flex items-baseline gap-2 py-2 text-sm transition-colors hover:text-accent">
+              <Link href={`/b/${p.board || slug}/${p.id}`} className="flex items-baseline gap-2 py-2 text-sm transition-colors hover:text-accent">
                 {p.isNotice && <span className="shrink-0 rounded bg-accent px-1.5 py-px text-[10px] font-bold text-white">공지</span>}
                 <span className="truncate font-medium">{p.title}</span>
                 {p.comments > 0 && <span className="shrink-0 text-xs font-bold text-accent-2">[{p.comments}]</span>}

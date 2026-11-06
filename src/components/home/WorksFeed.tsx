@@ -25,7 +25,7 @@ export default function WorksFeed({ works }: { works: PostSummary[] }) {
         <ul className="grid gap-3 sm:grid-cols-2">
           {works.map((w, i) => (
             <li key={w.id}>
-              <Link href={`/b/${w.board}`} className="lift flex h-full gap-3 rounded-2xl border border-line bg-bg p-3">
+              <Link href={`/b/${w.board}/${w.id}`} className="lift flex h-full gap-3 rounded-2xl border border-line bg-bg p-3">
                 <div className={`relative size-20 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br ${GRAD[i % GRAD.length]} sm:size-24`}>
                   {w.thumbnail ? (
                     // eslint-disable-next-line @next/next/no-img-element

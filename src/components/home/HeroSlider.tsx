@@ -46,7 +46,7 @@ export default function HeroSlider({ slides }: { slides: PostSummary[] }) {
         {slides.map((s, i) => (
           <Link
             key={s.id}
-            href={`/b/${s.board}`}
+            href={`/b/${s.board}/${s.id}`}
             aria-hidden={i !== index}
             tabIndex={i === index ? 0 : -1}
             className={`relative block aspect-video w-full shrink-0 bg-gradient-to-br ${BG[i % BG.length]}`}

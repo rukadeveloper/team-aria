@@ -116,6 +116,112 @@ const toPost = (r: PostRow, board: string): PostSummary => ({
   id: r.id, board, title: r.title, author: r.author_name, createdAt: r.created_at, comments: r.comment_count, isNotice: r.is_notice,
 });
 
+export interface BoardPage {
+  posts: PostSummary[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+const BOARD_PAGE_SIZE = 20;
+
+// 게시판 글 목록 (페이지 단위). 글이 없거나 연결 전이면 빈 목록
+export async function getBoardPosts(slug: string, page = 1): Promise<BoardPage> {
+  'use cache';
+  cacheLife('minutes');
+  cacheTag('posts');
+
+  const pageSize = BOARD_PAGE_SIZE;
+  if (!hasSupabase) return { posts: [], page, pageSize, total: 0 };
+  try {
+    const db = publicClient();
+    const from = (page - 1) * pageSize;
+    const { data, error, count } = await db
+      .from('posts')
+      .select(`${POST_COLUMNS}, boards!inner(slug)`, { count: 'exact' })
+      .eq('boards.slug', slug)
+      .order('is_notice', { ascending: false })
+      .order('created_at', { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    return {
+      posts: ((data ?? []) as unknown as PostRow[]).map((r) => toPost(r, slug)),
+      page, pageSize, total: count ?? 0,
+    };
+  } catch {
+    return { posts: [], page, pageSize, total: 0 };
+  }
+}
+
+export interface PostCredit {
+  label: string;
+  value: string;
+  link?: string;
+  memberOnly?: boolean;
+}
+
+export interface PostDetail {
+  id: number;
+  board: string; // slug
+  title: string;
+  author: string;
+  createdAt: string;
+  viewCount: number;
+  commentCount: number;
+  isNotice: boolean;
+  tags: string[];
+  content: string; // HTML. 화면에 그릴 때 cleanHtml() 을 거쳐야 한다
+  credits?: PostCredit[];
+}
+
+export interface CommentNode {
+  id: number;
+  parentId: number | null;
+  author: string;
+  content: string; // HTML. cleanHtml() 을 거쳐야 한다
+  createdAt: string;
+}
+
+// 글 하나 + 댓글. 없거나(삭제·권한 없음) 연결 전이면 null
+export async function getPost(slug: string, id: number): Promise<{ post: PostDetail; comments: CommentNode[] } | null> {
+  'use cache';
+  cacheLife('minutes');
+  cacheTag('posts');
+
+  if (!hasSupabase || !Number.isFinite(id)) return null;
+  try {
+    const db = publicClient();
+    const { data, error } = await db
+      .from('posts')
+      .select('id, title, author_name, created_at, view_count, comment_count, is_notice, tags, content, meta, boards!inner(slug)')
+      .eq('id', id)
+      .eq('boards.slug', slug)
+      .single();
+    if (error || !data) return null;
+
+    const { data: commentRows, error: commentError } = await db
+      .from('comments')
+      .select('id, parent_id, author_name, content, created_at')
+      .eq('post_id', id)
+      .order('created_at', { ascending: true });
+    if (commentError) throw commentError;
+
+    const meta = (data.meta ?? {}) as { credits?: PostCredit[] };
+    return {
+      post: {
+        id: data.id, board: slug, title: data.title, author: data.author_name, createdAt: data.created_at,
+        viewCount: data.view_count, commentCount: data.comment_count, isNotice: data.is_notice,
+        tags: data.tags ?? [], content: data.content, credits: meta.credits,
+      },
+      comments: (commentRows ?? []).map((c) => ({
+        id: c.id, parentId: c.parent_id, author: c.author_name, content: c.content, createdAt: c.created_at,
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
 // 홈 화면에 필요한 데이터를 한 번에. 5분 캐시, 글을 쓰면 'posts' 태그로 즉시 갱신할 수 있다
 export async function getHome(): Promise<HomeData> {
   'use cache';
