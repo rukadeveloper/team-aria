@@ -1,0 +1,17 @@
+# 기존 XE 덤프를 불러 볼 임시 MariaDB (이전 도구가 여기서 읽는다). 운영 DB 와 무관하다.
+# 덤프(.sql 또는 .sql.gz)를 import/dump 에 넣고 `npm run import:db:up` 하면 처음 한 번 자동으로 불러온다.
+services:
+  xe-db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: xe
+      MARIADB_DATABASE: xe
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./import/dump:/docker-entrypoint-initdb.d:ro
+      - xe-data:/var/lib/mysql
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--max_allowed_packet=256M"]
+
+volumes:
+  xe-data:
